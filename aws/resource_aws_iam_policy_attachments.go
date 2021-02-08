@@ -43,27 +43,27 @@ func resourceAwsIamPolicyAttachmentsCreate(d *schema.ResourceData, meta interfac
 	conn := meta.(*AWSClient).iamconn
 
 	name := d.Get("name").(string)
-	resource_type := d.Get("type").(string)
+	resourceType := d.Get("type").(string)
 	policy_arns := expandStringSet(d.Get("policy_arns").(*schema.Set))
 
 	var attachmentErr error
 	for _, arn := range policy_arns {
 		log.Printf("[TRACE] Managing the policy %s", arn)
-		if resource_type == "role" {
+		if resourceType == "role" {
 			attachmentErr = attachPolicyToRole(conn, name, *arn)
 		}
-		if resource_type == "user" {
+		if resourceType == "user" {
 			attachmentErr = attachPolicyToUser(conn, name, *arn)
 		}
-		if resource_type == "group" {
+		if resourceType == "group" {
 			attachmentErr = attachPolicyToGroup(conn, name, *arn)
 		}
 		if attachmentErr != nil {
-			return fmt.Errorf("Unable to attach the policy %s to %s/%s: %s", *arn, resource_type, name, attachmentErr)
+			return fmt.Errorf("Unable to attach the policy %s to %s/%s: %s", *arn, resourceType, name, attachmentErr)
 		}
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", resource_type, name))
+	d.SetId(fmt.Sprintf("%s/%s", resourceType, name))
 	return resourceAwsIamPolicyAttachmentsRead(d, meta)
 }
 
@@ -71,28 +71,28 @@ func resourceAwsIamPolicyAttachmentsRead(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).iamconn
 
 	name := d.Get("name").(string)
-	resource_type := d.Get("type").(string)
+	resourceType := d.Get("type").(string)
 	//var err error
 	currentAttachedPolicies := make([]string, 0)
 	var err error
 	var userAttachedPolicies *iam.ListAttachedUserPoliciesOutput
 	var roleAttachedPolicies *iam.ListAttachedRolePoliciesOutput
 	var groupAttachedPolicies *iam.ListAttachedGroupPoliciesOutput
-	if resource_type == "role" {
+	if resourceType == "role" {
 		roleAttachedPolicies, err = conn.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
 			RoleName: aws.String(name),
 		})
 		for _, p := range roleAttachedPolicies.AttachedPolicies {
 			currentAttachedPolicies = append(currentAttachedPolicies, *p.PolicyArn)
 		}
-	} else if resource_type == "user" {
+	} else if resourceType == "user" {
 		userAttachedPolicies, err = conn.ListAttachedUserPolicies(&iam.ListAttachedUserPoliciesInput{
 			UserName: aws.String(name),
 		})
 		for _, p := range userAttachedPolicies.AttachedPolicies {
 			currentAttachedPolicies = append(currentAttachedPolicies, *p.PolicyArn)
 		}
-	} else if resource_type == "group" {
+	} else if resourceType == "group" {
 		groupAttachedPolicies, err = conn.ListAttachedGroupPolicies(&iam.ListAttachedGroupPoliciesInput{
 			GroupName: aws.String(name),
 		})
@@ -102,7 +102,7 @@ func resourceAwsIamPolicyAttachmentsRead(d *schema.ResourceData, meta interface{
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error while listing attached policies for %s/%s: %s", resource_type, name, err)
+		return fmt.Errorf("Error while listing attached policies for %s/%s: %s", resourceType, name, err)
 	}
 
 	d.Set("policy_arns", currentAttachedPolicies)
@@ -148,26 +148,18 @@ func resourceAwsIamPolicyAttachmentsUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceAwsIamPolicyAttachmentsDelete(d *schema.ResourceData, meta interface{}) error {
-	// conn := meta.(*AWSClient).iamconn
-	// name := d.Get("name").(string)
-	// arn := d.Get("policy_arn").(string)
-	// users := expandStringSet(d.Get("users").(*schema.Set))
-	// roles := expandStringSet(d.Get("roles").(*schema.Set))
-	// groups := expandStringSet(d.Get("groups").(*schema.Set))
+	conn := meta.(*AWSClient).iamconn
+	name := d.Get("name").(string)
+	resourceType := d.Get("type").(string)
+	policy_arns := expandStringSet(d.Get("policy_arns").(*schema.Set))
 
-	// var userErr, roleErr, groupErr error
-	// if len(users) != 0 {
-	// 	userErr = detachPolicyFromUsers(conn, users, arn)
-	// }
-	// if len(roles) != 0 {
-	// 	roleErr = detachPolicyFromRoles(conn, roles, arn)
-	// }
-	// if len(groups) != 0 {
-	// 	groupErr = detachPolicyFromGroups(conn, groups, arn)
-	// }
-	// if userErr != nil || roleErr != nil || groupErr != nil {
-	// 	return composeErrors(fmt.Sprint("[WARN] Error removing user, role, or group list from IAM Policy Detach ", name, ":"), userErr, roleErr, groupErr)
-	// }
+	var dettachErr error
+	for _, p := range policy_arns {
+		dettachErr = dettachPolicyFrom(conn, resourceType, name, *p)
+		if dettachErr != nil {
+			return fmt.Errorf("Error while dettaching policy %s from  %s/%s: %s", *p, resourceType, name, dettachErr)
+		}
+	}
 	return nil
 }
 
