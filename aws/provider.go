@@ -720,6 +720,7 @@ func Provider() *schema.Provider {
 			"aws_iam_openid_connect_provider":                         resourceAwsIamOpenIDConnectProvider(),
 			"aws_iam_policy":                                          resourceAwsIamPolicy(),
 			"aws_iam_policy_attachment":                               resourceAwsIamPolicyAttachment(),
+			"aws_iam_policy_attachments":                              resourceAwsIamPolicyAttachments(),
 			"aws_iam_role_policy_attachment":                          resourceAwsIamRolePolicyAttachment(),
 			"aws_iam_role_policy":                                     resourceAwsIamRolePolicy(),
 			"aws_iam_role":                                            resourceAwsIamRole(),
